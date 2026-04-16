@@ -2,7 +2,6 @@
 
 const express = require('express');
 const { getReply, FALLBACK_MESSAGE } = require('./claude');
-const { sendMessage } = require('./twilio');
 
 const router = express.Router();
 
@@ -18,23 +17,28 @@ router.post('/', async (req, res) => {
 
   console.log(`[${timestamp}] Incoming message from ${sender}: "${incomingBody}"`);
 
-  // Acknowledge Twilio immediately with an empty TwiML response.
-  // The actual reply is sent asynchronously via the REST API.
-  res.set('Content-Type', 'text/xml');
-  res.status(200).send('<Response></Response>');
-
-  // Generate and send reply asynchronously (avoids Twilio's 30s webhook timeout)
+  // In serverless environments (Vercel), execution stops after res.send().
+  // So we generate the reply FIRST and return it directly via TwiML.
+  let replyText;
   try {
-    const reply = await getReply(incomingBody);
-    await sendMessage(sender, reply);
+    replyText = await getReply(incomingBody);
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] Failed to process message from ${sender}:`, err.message);
-    try {
-      await sendMessage(sender, FALLBACK_MESSAGE);
-    } catch (fallbackErr) {
-      console.error(`[${new Date().toISOString()}] Fallback message also failed:`, fallbackErr.message);
-    }
+    console.error(`[${new Date().toISOString()}] Claude failed for ${sender}:`, err.message);
+    replyText = FALLBACK_MESSAGE;
   }
+
+  const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escapeXml(replyText)}</Message></Response>`;
+  res.set('Content-Type', 'text/xml');
+  res.status(200).send(twiml);
 });
+
+function escapeXml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
 
 module.exports = router;
