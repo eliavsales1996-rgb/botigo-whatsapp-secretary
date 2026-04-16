@@ -19,6 +19,7 @@
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.89.0",
+    "@vercel/functions": "^3.4.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "twilio": "^5.3.3"
