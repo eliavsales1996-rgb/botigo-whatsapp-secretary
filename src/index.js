@@ -5,7 +5,6 @@ const express = require('express');
 const webhookRouter = require('./webhook');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Parse Twilio's URL-encoded webhook payloads
 app.use(express.urlencoded({ extended: false }));
@@ -39,8 +38,15 @@ process.on('unhandledRejection', (reason) => {
   console.error(`[${new Date().toISOString()}] Unhandled Rejection:`, reason);
 });
 
-app.listen(PORT, () => {
-  console.log(`[${new Date().toISOString()}] Legal AI Secretary running on port ${PORT}`);
-  console.log(`  Webhook URL: http://localhost:${PORT}/webhook`);
-  console.log(`  Health check: http://localhost:${PORT}/health`);
-});
+// Export app for Vercel serverless — only call listen() in local dev
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`[${new Date().toISOString()}] Botigo AI Secretary running on port ${PORT}`);
+    console.log(`  Webhook URL: http://localhost:${PORT}/webhook`);
+    console.log(`  Health check: http://localhost:${PORT}/health`);
+  });
+  module.exports = app;
+}
