@@ -19,9 +19,11 @@
   "license": "ISC",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.89.0",
+    "@supabase/supabase-js": "^2.103.3",
     "@vercel/functions": "^3.4.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "openai": "^6.34.0",
     "twilio": "^5.3.3"
   },
   "devDependencies": {
