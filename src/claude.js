@@ -3,7 +3,7 @@
 require('dotenv').config();
 const Anthropic = require('@anthropic-ai/sdk');
 const { BOTIGO_SALES_PROMPT } = require('./persona');
-const { TOOL_DEFINITIONS, dispatch } = require('./actions');
+const { getToolsForRole, dispatch } = require('./actions');
 
 const CLAUDE_TIMEOUT_MS = 50_000; // generous — agentic loop may call Claude 2-3 times
 const MAX_TOOL_ITERATIONS = 5;    // guard against infinite loops
@@ -16,12 +16,12 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 // Internal helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function callClaude(messages, systemPrompt) {
+async function callClaude(messages, systemPrompt, tools) {
   return client.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1024,
     system: systemPrompt,
-    tools: TOOL_DEFINITIONS,
+    tools,
     messages,
   });
 }
@@ -54,16 +54,19 @@ async function runTool(block, context) {
  * @param {string}   userMessage   The latest incoming WhatsApp message
  * @param {string}   systemPrompt  Persona prompt chosen for this conversation
  * @param {Array<{role:string, content:string}>} history  Prior messages (oldest first)
- * @param {{ businessId: string|null }} context  Business context for tool calls
+ * @param {{ businessId: string|null, sender: string|null }} context  Business context for tool calls
+ * @param {'owner'|'customer'|'lead'} role  Controls which tools are exposed
  * @returns {Promise<string>}
  */
 async function getReply(
   userMessage,
   systemPrompt = BOTIGO_SALES_PROMPT,
   history = [],
-  context = {}
+  context = {},
+  role = 'lead'
 ) {
   const deadline = Date.now() + CLAUDE_TIMEOUT_MS;
+  const tools = getToolsForRole(role);
 
   const messages = [
     ...history.map((m) => ({ role: m.role, content: m.content })),
@@ -77,7 +80,7 @@ async function getReply(
     if (remaining <= 0) throw new Error('Claude agentic loop timed out');
 
     response = await Promise.race([
-      callClaude(messages, systemPrompt),
+      callClaude(messages, systemPrompt, tools),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Claude API timeout')), remaining)
       ),

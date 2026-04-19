@@ -99,9 +99,8 @@ async function handleMessage({ sender, incomingBody, numMedia, mediaUrl, mediaTy
   }
 
   // ── 2. Router — who is this? ──────────────────────────────────────────────
-  const { role, business } = await resolveContext(sender);
-  const systemPrompt = getSystemPrompt(role, business);
-  // context is passed to native action tools so they know which business to query
+  const { role, business, ownerName } = await resolveContext(sender);
+  const systemPrompt = getSystemPrompt(role, business, ownerName);
   const context = { businessId: business?.id ?? null, sender };
 
   console.log(`[${timestamp}] DEBUG resolveContext → role="${role}" business="${business?.name ?? 'n/a'}" businessId="${context.businessId ?? 'NULL'}"`);
@@ -114,7 +113,7 @@ async function handleMessage({ sender, incomingBody, numMedia, mediaUrl, mediaTy
   if (!messageSaved) await saveMessage(sender, 'user', incomingBody);
 
   // ── 5. Generate reply (agentic loop with native tools) ────────────────────
-  const reply = await getReply(incomingBody, systemPrompt, history, context);
+  const reply = await getReply(incomingBody, systemPrompt, history, context, role);
 
   // ── 6. Persist reply + send ───────────────────────────────────────────────
   await saveMessage(sender, 'assistant', reply);

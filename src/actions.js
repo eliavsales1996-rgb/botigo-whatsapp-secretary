@@ -636,4 +636,18 @@ async function dispatch(toolName, input, context = {}) {
   }
 }
 
-module.exports = { TOOL_DEFINITIONS, dispatch };
+// Tools that should only be exposed to the business owner, not to customers or leads
+const OWNER_ONLY_TOOL_NAMES = new Set(['add_reminder', 'send_whatsapp_message']);
+
+/**
+ * Return the appropriate tool list for a given role.
+ * Owners get all tools; customers/leads get only customer-facing tools.
+ *
+ * @param {'owner'|'customer'|'lead'} role
+ */
+function getToolsForRole(role) {
+  if (role === 'owner') return TOOL_DEFINITIONS;
+  return TOOL_DEFINITIONS.filter((t) => !OWNER_ONLY_TOOL_NAMES.has(t.name));
+}
+
+module.exports = { TOOL_DEFINITIONS, getToolsForRole, dispatch };
