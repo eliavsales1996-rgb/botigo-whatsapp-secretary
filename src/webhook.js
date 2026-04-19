@@ -102,7 +102,7 @@ async function handleMessage({ sender, incomingBody, numMedia, mediaUrl, mediaTy
   const { role, business } = await resolveContext(sender);
   const systemPrompt = getSystemPrompt(role, business);
   // context is passed to native action tools so they know which business to query
-  const context = { businessId: business?.id ?? null };
+  const context = { businessId: business?.id ?? null, sender };
 
   console.log(`[${timestamp}] DEBUG resolveContext → role="${role}" business="${business?.name ?? 'n/a'}" businessId="${context.businessId ?? 'NULL'}"`);
   console.log(`[${timestamp}] DEBUG systemPrompt starts with: "${systemPrompt.slice(0, 60).replace(/\n/g, ' ')}..."`);

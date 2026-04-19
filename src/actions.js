@@ -329,6 +329,45 @@ const ACTIONS = {
     return ok(`ההודעה נשלחה בהצלחה ל-${to_phone} ✅`);
   },
 
+  // ── Reminders ──────────────────────────────────────────────────────────────
+
+  /**
+   * Save a reminder for the user.
+   */
+  async add_reminder(input, context) {
+    const business_id = resolveBusinessId(input, context);
+    const { title, remind_at } = input;
+    const sender = context?.sender || null;
+
+    if (!title)      return err('נדרש כותרת לתזכורת (title).');
+    if (!remind_at)  return err('נדרש זמן לתזכורת (remind_at) בפורמט ISO.');
+    if (!sender)     return err('לא זוהה מספר שולח — לא ניתן לשמור תזכורת.');
+
+    const remindDate = new Date(remind_at);
+    if (isNaN(remindDate.getTime())) return err('remind_at אינו תאריך תקין.');
+
+    const { data, error } = await supabase
+      .from('reminders')
+      .insert({
+        business_id: business_id || null,
+        sender,
+        title,
+        remind_at: remindDate.toISOString(),
+      })
+      .select('id, remind_at')
+      .single();
+
+    if (error) return err(`שגיאה בשמירת התזכורת: ${error.message}`);
+
+    const formatted = remindDate.toLocaleString('he-IL', {
+      timeZone: 'Asia/Jerusalem',
+      weekday: 'long', day: 'numeric', month: 'long',
+      hour: '2-digit', minute: '2-digit',
+    });
+
+    return ok(`תזכורת נשמרה ✅ — "${title}" ב-${formatted}`, { reminder_id: data.id, remind_at: data.remind_at });
+  },
+
   // ── Business Overview ──────────────────────────────────────────────────────
 
   /**
@@ -536,6 +575,28 @@ const TOOL_DEFINITIONS = [
         },
       },
       required: ['to_phone', 'message_text'],
+    },
+  },
+  {
+    name: 'add_reminder',
+    description:
+      'שמור תזכורת עבור המשתמש. ' +
+      'חלץ את הכותרת ואת הזמן המדויק מהבקשה. ' +
+      'השתמש בתאריך היום כנקודת ייחוס לביטויים כמו "מחר", "בעוד שעה", "ביום שישי". ' +
+      'ברירת מחדל לשעה — 10:00 בבוקר אם לא צוינה שעה.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'מה להזכיר — תיאור קצר וברור',
+        },
+        remind_at: {
+          type: 'string',
+          description: 'מתי להזכיר — פורמט ISO 8601 מלא, לפי אזור זמן ישראל (UTC+3)',
+        },
+      },
+      required: ['title', 'remind_at'],
     },
   },
   {
