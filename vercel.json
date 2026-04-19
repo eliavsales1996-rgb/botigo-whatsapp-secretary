@@ -1,6 +1,16 @@
 {
   "version": 2,
+  "crons": [
+    {
+      "path": "/api/cron/check-reminders",
+      "schedule": "* * * * *"
+    }
+  ],
   "routes": [
+    {
+      "src": "/api/cron/(.*)",
+      "dest": "/api/cron/$1.js"
+    },
     {
       "src": "/(.*)",
       "dest": "api/index.js"
@@ -9,6 +19,9 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 60
+    },
+    "api/cron/check-reminders.js": {
+      "maxDuration": 30
     }
   }
 }
