@@ -103,8 +103,10 @@ async function handleMessage({ sender, incomingBody, numMedia, mediaUrl, mediaTy
   const systemPrompt = getSystemPrompt(role, business, ownerName);
   const context = { businessId: business?.id ?? null, sender };
 
-  console.log(`[${timestamp}] DEBUG resolveContext → role="${role}" business="${business?.name ?? 'n/a'}" businessId="${context.businessId ?? 'NULL'}"`);
-  console.log(`[${timestamp}] DEBUG systemPrompt starts with: "${systemPrompt.slice(0, 60).replace(/\n/g, ' ')}..."`);
+  console.log(`[Webhook] USER ROLE: ${role} | sender: ${sender} | business: ${business?.name ?? 'n/a'} | ownerName: ${ownerName ?? 'not set'}`);
+  if (role !== 'owner') {
+    console.warn(`[Webhook] ⚠️  NOT owner — add_reminder and send_whatsapp_message will NOT be available for this sender`);
+  }
 
   // ── 3. Memory — fetch history before saving the new message ──────────────
   const history = await fetchHistory(sender);
